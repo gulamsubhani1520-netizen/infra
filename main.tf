@@ -116,7 +116,7 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_instance" "nginx_ec2" {
-  ami                         = var.custom_ami_id != "" ? var.custom_ami_id : data.aws_ami.ubuntu_2204.id
+  ami                         = data.aws_ami.ubuntu_2204.id
   instance_type               = var.instance_type
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
