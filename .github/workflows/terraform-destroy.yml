@@ -16,13 +16,13 @@ jobs:
   destroy:
     if: ${{ github.event.inputs.confirm == 'DESTROY' }}
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: infra/.github/workflows/terraform-destroy.yml
+        working-directory: .
 
     env:
       TF_IN_AUTOMATION: "true"
-      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
       TF_VAR_key_pair_name: ${{ secrets.KEY_PAIR_NAME }}
       TF_VAR_ssh_cidr: ${{ secrets.SSH_CIDR }}
 
