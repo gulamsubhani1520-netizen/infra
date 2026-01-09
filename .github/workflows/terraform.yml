@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "INFRA/**"
+      - "infra/**"
       - ".github/workflows/terraform.yml"
 
 permissions:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: INFRA
+        working-directory: infra
 
     env:
       TF_IN_AUTOMATION: "true"
