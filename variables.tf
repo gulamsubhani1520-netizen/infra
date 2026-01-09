@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "project_name" {
   type    = string
-  default = "nginx-ssh-deploy"
+  default = "subhani-mahmood-ec2-instance"
 }
 
 variable "instance_type" {
