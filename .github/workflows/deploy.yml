@@ -37,7 +37,7 @@ jobs:
             # Write .env on the server (DO NOT commit secrets)
             cat > .env << ENVEOF
 #SA_PASSWORD=${SA_PASSWORD}
-ENVEOF
+#ENVEOF
 
             docker compose --env-file .env up -d --build
 
