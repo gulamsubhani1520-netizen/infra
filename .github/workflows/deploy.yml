@@ -35,8 +35,8 @@ jobs:
           cd ~/app
 
             cat > .env << ENVEOF
-SA_PASSWORD=${SA_PASSWORD}
-ENVEOF
+#SA_PASSWORD=${SA_PASSWORD}
+#ENVEOF
 
           docker compose --env-file .env up -d --build
           docker compose ps
