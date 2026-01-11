@@ -34,16 +34,11 @@ jobs:
             set -e
             cd ~/app
 
-            # Write .env on the server (DO NOT commit secrets)
             cat > .env << ENVEOF
-#SA_PASSWORD=${SA_PASSWORD}
-#ENVEOF
+SA_PASSWORD=${SA_PASSWORD}
+ENVEOF
 
             docker compose --env-file .env up -d --build
-
-            echo "===== docker compose ps ====="
             docker compose ps
-
-            echo "===== health check ====="
             curl -fsS http://localhost:8082/api/health
           EOF
