@@ -26,7 +26,7 @@ jobs:
             -e "ssh -i ~/.ssh/id_rsa" \
             ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app
 
-           - name: Deploy on EC2
+      - name: Deploy on EC2
         env:
           SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
         run: |
@@ -34,9 +34,9 @@ jobs:
           set -e
           cd ~/app
 
-          cat > .env <<ENVEOF
-          SA_PASSWORD=${SA_PASSWORD}
-          ENVEOF
+            cat > .env << ENVEOF
+SA_PASSWORD=${SA_PASSWORD}
+ENVEOF
 
           docker compose --env-file .env up -d --build
           docker compose ps
