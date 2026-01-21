@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type DESTROY to confirm'
+        description: "Type DESTROY to confirm"
         required: true
-        default: ''
+        default: ""
 
 permissions:
   id-token: write
@@ -25,6 +25,8 @@ jobs:
       TF_IN_AUTOMATION: "true"
       TF_VAR_key_pair_name: ${{ secrets.KEY_PAIR_NAME }}
       TF_VAR_ssh_cidr: ${{ secrets.SSH_CIDR }}
+      TF_VAR_custom_ami_id: ${{ secrets.CUSTOM_AMI_ID }}
+      TF_VAR_github_deploy_pubkey: ${{ secrets.DEPLOY_PUBLIC_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,9 +39,18 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
 
-      - name: Terraform Init
-        run: terraform init -input=false -no-color
+      - name: Terraform Init (reconfigure + upgrade providers)
+        run: terraform init -reconfigure -upgrade -input=false -no-color
+
+      - name: Debug - Terraform and provider versions
+        run: |
+          terraform version
+          terraform providers
+          ls -la .terraform.lock.hcl || true
+          sed -n '1,120p' .terraform.lock.hcl || true
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve -input=false -no-color -lock-timeout=2m
