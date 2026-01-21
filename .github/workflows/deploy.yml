@@ -1,44 +1,31 @@
-name: Deploy to EC2 (Docker Compose)
+- name: Deploy on EC2
+  env:
+    SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+  run: |
+    ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+    set -e
+    cd ~/app
 
-on:
-  push:
-    branches: ["main"]
-  workflow_dispatch:
+    echo "=== Current folder ==="
+    pwd
+    echo "=== Files in folder ==="
+    ls -la
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+    # Ensure compose file exists
+    if [ ! -f docker-compose.yml ] && [ ! -f docker-compose.yaml ]; then
+      echo "ERROR: docker-compose.yml not found in ~/app"
+      exit 1
+    fi
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    # Write env file for docker compose
+    cat > .env << ENVEOF
+    SA_PASSWORD=${SA_PASSWORD}
+    ENVEOF
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+    echo "=== .env created ==="
+    cat .env
 
-      - name: Upload repo to EC2
-        run: |
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/id_rsa" \
-            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app
-
-      - name: Deploy on EC2
-        env:
-          SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-            cd ~/app
-
-            cat > .env << ENVEOF
-SA_PASSWORD=${SA_PASSWORD}
-ENVEOF
-
-            docker compose --env-file .env up -d --build
-            docker compose ps
-            curl -fsS http://localhost:8082/api/health
-          EOF
+    docker compose --env-file .env up -d --build
+    docker compose ps
+    curl -fsS http://localhost:8082/api/health
+    EOF
