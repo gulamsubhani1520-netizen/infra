@@ -1,56 +1,45 @@
-name: Terraform Destroy (OIDC)
+name: Deploy on EC2
 
 on:
+  push:
+    branches: ["main"]
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: "Type DESTROY to confirm"
-        required: true
-        default: ""
-
-permissions:
-  id-token: write
-  contents: read
 
 jobs:
-  destroy:
-    if: ${{ github.event.inputs.confirm == 'DESTROY' }}
+  deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: .
-
-    env:
-      TF_IN_AUTOMATION: "true"
-      TF_VAR_key_pair_name: ${{ secrets.KEY_PAIR_NAME }}
-      TF_VAR_ssh_cidr: ${{ secrets.SSH_CIDR }}
-      TF_VAR_custom_ami_id: ${{ secrets.CUSTOM_AMI_ID }}
-      TF_VAR_github_deploy_pubkey: ${{ secrets.DEPLOY_PUBLIC_KEY }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.6
-
-      - name: Terraform Init (reconfigure + upgrade providers)
-        run: terraform init -reconfigure -upgrade -input=false -no-color
-
-      - name: Debug - Terraform and provider versions
+      - name: Setup SSH
         run: |
-          terraform version
-          terraform providers
-          ls -la .terraform.lock.hcl || true
-          sed -n '1,120p' .terraform.lock.hcl || true
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve -input=false -no-color -lock-timeout=2m
+      - name: Upload repo to EC2
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_rsa" \
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app
+
+      - name: Deploy on EC2
+        env:
+          SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e
+          cd ~/app
+
+          # Write .env on the server (heredoc must be aligned correctly)
+          cat > .env << 'ENVEOF'
+          SA_PASSWORD=${SA_PASSWORD}
+          ENVEOF
+
+          docker compose --env-file .env up -d --build
+          docker compose ps
+          curl -fsS http://localhost:8082/api/health
+          EOF
