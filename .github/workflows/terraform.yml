@@ -40,8 +40,21 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Terraform Init (upgrade providers)
-        run: terraform init -upgrade -input=false -no-color
+      # Optional but helps prevent stale init/plugin directories
+      - name: Clean Terraform working dir
+        run: |
+          rm -rf .terraform || true
+
+      - name: Terraform Init (reconfigure + upgrade providers)
+        run: terraform init -reconfigure -upgrade -input=false -no-color
+
+      - name: Debug - Terraform & Provider versions
+        run: |
+          terraform version
+          terraform providers
+          echo "---- lock file ----"
+          ls -la .terraform.lock.hcl || true
+          sed -n '1,200p' .terraform.lock.hcl || true
 
       - name: Terraform Validate
         run: terraform validate -no-color
